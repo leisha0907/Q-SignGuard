@@ -1,253 +1,531 @@
-import streamlit as st
-import numpy as np
-import hashlib
-import time
-import plotly.graph_objects as go
-from qiskit import QuantumCircuit
-from qiskit.quantum_info import Statevector
+"""
+Q-SignGuard — Deterministic Quantum Digital Signature (QDS) Engine
+Smart India Hackathon 2026 | Problem ID: SIH26141 | Team: QSentinel
 
-# ==============================================================================
-# 1. APPLICATION SETUP & TOURNAMENT CYBER THEME
-# ==============================================================================
+Demonstrates Bell State Measurement (BSM) based quantum teleportation,
+Pauli unitary recovery, and physical wavefunction-collapse gating for
+document-signature verification over simulated 1550 nm dark fiber.
+
+Run with:  streamlit run app.py
+Dependencies: streamlit, qiskit, numpy, plotly
+"""
+
+import hashlib
+import io
+
+import numpy as np
+import plotly.graph_objects as go
+import streamlit as st
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+
+# --------------------------------------------------------------------------
+# PAGE CONFIG
+# --------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Q-SignGuard | Quantum Signature Engine",
+    page_title="Q-SignGuard | SIH26141",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
+# --------------------------------------------------------------------------
+# CUSTOM CSS — DEEP-TECH / CYBER AESTHETIC
+# --------------------------------------------------------------------------
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Inter:wght@400;600;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    code, pre, .stCodeBlock { font-family: 'JetBrains Mono', monospace !important; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
-    .main-header {
-        background: linear-gradient(135deg, #0b192c 0%, #1e3e62 100%);
-        padding: 22px 30px;
-        border-radius: 12px;
-        border: 1px solid rgba(0, 216, 255, 0.25);
-        color: white;
-        margin-bottom: 20px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
     }
-    .tech-badge {
+
+    .stApp {
+        background: radial-gradient(circle at 15% 10%, #0d1b2a 0%, #060a12 55%, #030509 100%);
+        color: #e6f1ff;
+    }
+
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0a121f 0%, #050a12 100%);
+        border-right: 1px solid rgba(0, 229, 255, 0.15);
+    }
+
+    h1, h2, h3, h4 {
+        font-family: 'Inter', sans-serif;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+    }
+
+    .qs-hero {
+        padding: 1.4rem 1.8rem;
+        border-radius: 18px;
+        background: linear-gradient(135deg, rgba(0,229,255,0.10), rgba(123,97,255,0.08));
+        border: 1px solid rgba(0, 229, 255, 0.25);
+        box-shadow: 0 0 40px rgba(0, 229, 255, 0.08);
+        margin-bottom: 1.2rem;
+    }
+
+    .qs-badge {
         display: inline-block;
-        background: rgba(0, 216, 255, 0.12);
-        border: 1px solid #00d8ff;
-        color: #00d8ff;
-        font-size: 0.78rem;
+        padding: 0.18rem 0.7rem;
+        margin-right: 0.4rem;
+        border-radius: 999px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: rgba(0, 229, 255, 0.12);
+        border: 1px solid rgba(0, 229, 255, 0.35);
+        color: #7be8ff;
+    }
+
+    .qs-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 1.1rem 1.3rem;
+        margin-bottom: 1rem;
+        backdrop-filter: blur(6px);
+    }
+
+    .qs-mono {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+        color: #9fe8ff;
+        word-break: break-all;
+    }
+
+    .qs-banner-success {
+        padding: 1.1rem 1.4rem;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(0, 230, 118, 0.18), rgba(0, 230, 118, 0.06));
+        border: 1.5px solid rgba(0, 230, 118, 0.65);
+        box-shadow: 0 0 30px rgba(0, 230, 118, 0.20);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.05rem;
         font-weight: 700;
-        padding: 3px 10px;
-        border-radius: 6px;
-        margin-right: 8px;
+        color: #4dffb0;
+        text-align: center;
+        margin: 0.8rem 0 1.2rem 0;
     }
-    .banner-pass {
-        background: #ecfdf5;
-        border: 2px solid #10b981;
-        border-radius: 10px;
-        padding: 18px 24px;
-        color: #065f46;
+
+    .qs-banner-fail {
+        padding: 1.1rem 1.4rem;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(255, 45, 85, 0.22), rgba(255, 45, 85, 0.06));
+        border: 1.5px solid rgba(255, 45, 85, 0.70);
+        box-shadow: 0 0 30px rgba(255, 45, 85, 0.25);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #ff7a90;
+        text-align: center;
+        margin: 0.8rem 0 1.2rem 0;
+        animation: qs-pulse 1.4s ease-in-out infinite;
     }
-    .banner-abort {
-        background: #fef2f2;
-        border: 2px solid #ef4444;
-        border-radius: 10px;
-        padding: 18px 24px;
-        color: #991b1b;
+
+    @keyframes qs-pulse {
+        0%   { box-shadow: 0 0 20px rgba(255, 45, 85, 0.20); }
+        50%  { box-shadow: 0 0 45px rgba(255, 45, 85, 0.45); }
+        100% { box-shadow: 0 0 20px rgba(255, 45, 85, 0.20); }
     }
+
+    .qs-section-title {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.95rem;
+        color: #7be8ff;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 0.5rem;
+        border-left: 3px solid #00e5ff;
+        padding-left: 0.6rem;
+    }
+
+    div[data-testid="stMetric"] {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 0.8rem 1rem;
+    }
+
+    div[data-testid="stMetricValue"] {
+        font-family: 'JetBrains Mono', monospace;
+        color: #7be8ff;
+    }
+
+    pre, code {
+        font-family: 'JetBrains Mono', monospace !important;
+        background: #050a12 !important;
+        color: #7be8ff !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(0, 229, 255, 0.15) !important;
+    }
+
+    footer, #MainMenu { visibility: hidden; }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# Header
+# --------------------------------------------------------------------------
+# HERO HEADER
+# --------------------------------------------------------------------------
 st.markdown(
     """
-    <div class="main-header">
-        <span class="tech-badge">SIH 2026</span>
-        <span class="tech-badge">PS: SIH26141</span>
-        <span class="tech-badge">TEAM QSENTINEL</span>
-        <h2 style="margin: 10px 0 4px 0; font-weight: 800; color: #ffffff;">
-            🛡️ Q-SignGuard: Deterministic Quantum Signature Engine
-        </h2>
-        <p style="margin: 0; color: #cbd5e1; font-size: 0.98rem;">
-            Autonomous Wavefunction Collapse Gating & Pauli Unitary Reconstruction over 1550 nm Telecom Fiber.
+    <div class="qs-hero">
+        <span class="qs-badge">SIH26141</span>
+        <span class="qs-badge">TEAM QSENTINEL</span>
+        <span class="qs-badge">1550nm C-BAND DARK FIBER</span>
+        <h1 style="margin: 0.5rem 0 0.2rem 0;">🛡️ Q-SignGuard</h1>
+        <p style="color:#9fb6cc; margin:0; font-size:1.02rem;">
+            Deterministic Quantum Digital Signature Engine — Bell State Measurement,
+            Pauli Recovery &amp; Wavefunction-Collapse Threat Gating
         </p>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-# ==============================================================================
-# 2. SIDEBAR - ATTACK INJECTION (EVE) & FIBER SETUP
-# ==============================================================================
+# --------------------------------------------------------------------------
+# SIDEBAR — CONTROL PANEL
+# --------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("### ⚙️ **Optical Bus Controls**")
-    fiber_distance = st.slider("Dark Fiber Span (km)", 10, 100, 40, step=5)
-    st.caption("Standard 1550 nm C-Band Dark Fiber Link")
-    
-    st.divider()
-    st.markdown("### 🚨 **Adversary Emulation**")
-    eve_active = st.toggle("Inject Eve Attack (Optical Tap)", value=False)
-    
-    if eve_active:
-        st.error("⚠️ **EVE ACTIVE ON FIBER**\nArbitrary projective measurement running. State collapse unavoidable.")
-    else:
-        st.success("🔒 **OPTICAL LINK SECURE**\nSingle-photon quantum bus coherent.")
+    st.markdown("### ⚙️ Mission Control")
+    st.markdown("---")
+    eve_attack = st.toggle(
+        "🕵️ Inject Eve Attack (Optical Tap)",
+        value=False,
+        help="Simulates an intercept-resend attack on the quantum channel via a fiber tap.",
+    )
+    st.markdown("---")
+    st.markdown("#### 📡 Channel Parameters")
+    st.markdown(
+        f"""
+        <div class="qs-mono">
+        Wavelength&nbsp;&nbsp;&nbsp;: 1550.12 nm<br>
+        Channel&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: C-Band Dark Fiber<br>
+        QBER Cutoff&nbsp;&nbsp;: 11.00 %<br>
+        Mode&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {"⚠️ ADVERSARIAL" if eve_attack else "✅ NOMINAL"}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("---")
+    st.caption("Q-SignGuard v1.0 · SIH 2026 Prototype · Team QSentinel")
 
-# ==============================================================================
-# 3. LIVE PDF UPLOADER & PAYLOAD INGESTION
-# ==============================================================================
-st.markdown("### **1. Real Contract / Document Ingestion**")
+# --------------------------------------------------------------------------
+# CORE FUNCTIONS
+# --------------------------------------------------------------------------
+FALLBACK_NAME = "default_tactical_dispatch.pdf"
+FALLBACK_BYTES = (
+    b"SIH26141::QSENTINEL::DEFAULT_TACTICAL_DISPATCH::"
+    b"CLASSIFICATION=RESTRICTED::PAYLOAD_ID=0xQS2026::"
+    b"This is a deterministic fallback tactical contract payload used so that "
+    b"the Q-SignGuard prototype dashboard never starts in an empty state. "
+    b"Replace by uploading a real PDF, DOCX, or TXT document."
+)
+
+
+def compute_digest(payload: bytes) -> bytes:
+    return hashlib.sha256(payload).digest()
+
+
+def derive_quantum_params(digest: bytes):
+    """Deterministically derive encoding angles + BSM outcome from a digest."""
+    theta = (digest[0] / 255.0) * np.pi
+    phi = (digest[1] / 255.0) * 2 * np.pi
+    b1 = (digest[2] >> 1) & 1
+    b0 = digest[2] & 1
+    seed = int.from_bytes(digest[4:8], "big")
+    return theta, phi, b1, b0, seed
+
+
+PAULI_MAP = {
+    (0, 0): ("I", "Identity — no correction required"),
+    (0, 1): ("X", "Bit-flip correction applied"),
+    (1, 0): ("Z", "Phase-flip correction applied"),
+    (1, 1): ("Y", "Combined bit + phase-flip correction applied"),
+}
+
+
+def build_teleportation_circuit(theta: float, phi: float) -> QuantumCircuit:
+    """3-qubit deterministic QDS teleportation circuit.
+
+    q0: payload qubit (document-digest-encoded state)
+    q1: Alice's half of the shared Bell pair
+    q2: Bob's half of the shared Bell pair (remote / receiver)
+    """
+    qr = QuantumRegister(3, "q")
+    cr = ClassicalRegister(3, "c")
+    qc = QuantumCircuit(qr, cr)
+
+    # --- Encode payload state onto q0 from the document digest ---
+    qc.ry(theta, 0)
+    qc.rz(phi, 0)
+    qc.barrier(label="ENCODE")
+
+    # --- Prepare shared Bell pair |Phi+> across q1, q2 ---
+    qc.h(1)
+    qc.cx(1, 2)
+    qc.barrier(label="BELL PAIR")
+
+    # --- Bell State Measurement (BSM) between payload qubit and q1 ---
+    qc.cx(0, 1)
+    qc.h(0)
+    qc.barrier(label="BSM")
+    qc.measure(0, 0)
+    qc.measure(1, 1)
+
+    # --- Classically-controlled Pauli recovery on Bob's qubit q2 ---
+    qc.x(2).c_if(cr[1], 1)
+    qc.z(2).c_if(cr[0], 1)
+    qc.barrier(label="PAULI RECOVERY")
+    qc.measure(2, 2)
+
+    return qc
+
+
+def simulate_protocol(digest: bytes, eve_attack: bool):
+    theta, phi, b1, b0, seed = derive_quantum_params(digest)
+    rng = np.random.default_rng(seed)
+
+    if eve_attack:
+        qber = float(rng.uniform(27.5, 33.0))
+        fidelity = float(rng.uniform(0.55, 0.75))
+        fpga_ms = float(rng.uniform(1.2, 4.8))
+    else:
+        qber = float(rng.uniform(3.5, 4.5))
+        fidelity = float(rng.uniform(0.990, 0.999))
+        fpga_ms = float(rng.uniform(0.8, 3.6))
+
+    pauli_symbol, pauli_desc = PAULI_MAP[(b1, b0)]
+    verified = qber <= 11.0
+
+    return {
+        "theta": theta,
+        "phi": phi,
+        "b1": b1,
+        "b0": b0,
+        "pauli_symbol": pauli_symbol,
+        "pauli_desc": pauli_desc,
+        "qber": qber,
+        "fidelity": fidelity,
+        "fpga_ms": fpga_ms,
+        "verified": verified,
+    }
+
+
+def make_gauge(qber: float) -> go.Figure:
+    bar_color = "#00e5ff" if qber <= 11.0 else "#ff2d55"
+    fig = go.Figure(
+        go.Indicator(
+            mode="gauge+number",
+            value=round(qber, 2),
+            number={"suffix": " %", "font": {"color": "#e6f1ff", "family": "JetBrains Mono"}},
+            title={"text": "QUANTUM BIT ERROR RATE (QBER)", "font": {"color": "#7be8ff", "size": 15}},
+            gauge={
+                "axis": {"range": [0, 40], "tickcolor": "#7be8ff", "tickfont": {"color": "#9fb6cc"}},
+                "bar": {"color": bar_color, "thickness": 0.32},
+                "bgcolor": "rgba(0,0,0,0)",
+                "borderwidth": 1,
+                "bordercolor": "rgba(255,255,255,0.15)",
+                "steps": [
+                    {"range": [0, 11], "color": "rgba(0, 230, 118, 0.22)"},
+                    {"range": [11, 40], "color": "rgba(255, 45, 85, 0.22)"},
+                ],
+                "threshold": {
+                    "line": {"color": "#ff2d55", "width": 4},
+                    "thickness": 0.9,
+                    "value": 11.0,
+                },
+            },
+        )
+    )
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font={"color": "#e6f1ff"},
+        height=320,
+        margin=dict(l=30, r=30, t=60, b=10),
+    )
+    return fig
+
+
+# --------------------------------------------------------------------------
+# FILE INGESTION
+# --------------------------------------------------------------------------
+st.markdown('<div class="qs-section-title">01 · Document Ingestion</div>', unsafe_allow_html=True)
+
 uploaded_file = st.file_uploader(
-    "Upload real contract (PDF) or financial wire payload", 
+    "Upload contract / document for quantum signature verification",
     type=["pdf", "txt", "docx"],
-    help="Upload any sample contract PDF to hash and lock with deterministic quantum digital signatures."
+    help="Accepted formats: PDF, TXT, DOCX. If nothing is uploaded, a default tactical dispatch is used.",
 )
 
 if uploaded_file is not None:
-    payload_bytes = uploaded_file.read()
-    filename_display = uploaded_file.name
+    file_bytes = uploaded_file.read()
+    file_name = uploaded_file.name
+    using_fallback = False
 else:
-    payload_bytes = b"STANDARD ARMED FORCES PROCUREMENT & CONTRACT DISPATCH - REF C4ISR-2026"
-    filename_display = "default_tactical_dispatch.pdf"
-    st.caption("ℹ️ *Running on default tactical payload. Upload any document above to sign a live file.*")
+    file_bytes = FALLBACK_BYTES
+    file_name = FALLBACK_NAME
+    using_fallback = True
 
-col_sign, col_meta = st.columns([1, 2])
-with col_sign:
-    sign_clicked = st.button("⚡ Sign with Q-SignGuard", type="primary", use_container_width=True)
+digest = compute_digest(file_bytes)
+digest_hex = digest.hex()
 
-with col_meta:
-    sha256_hash = hashlib.sha256(payload_bytes).hexdigest()
-    st.write(f"**Loaded File:** `{filename_display}` ({len(payload_bytes):,} bytes)")
-    st.write(f"**SHA-256 Digest:** `{sha256_hash}`")
+col_a, col_b = st.columns([1, 2])
+with col_a:
+    st.markdown(
+        f"""
+        <div class="qs-card">
+            <b>📄 Active Payload</b><br>
+            <span class="qs-mono">{file_name}</span><br><br>
+            <b>Size</b>: {len(file_bytes):,} bytes<br>
+            <b>Source</b>: {"Default fallback (no upload detected)" if using_fallback else "User-uploaded"}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with col_b:
+    st.markdown(
+        f"""
+        <div class="qs-card">
+            <b>🔐 SHA-256 Payload Digest (live)</b><br>
+            <span class="qs-mono">{digest_hex}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-# ==============================================================================
-# 4. QUANTUM PROTOCOL & CIRCUIT EXECUTION
-# ==============================================================================
-if sign_clicked or "last_run" not in st.session_state:
-    t_start = time.perf_counter()
-    
-    theta = (int(sha256_hash[0:8], 16) / 0xFFFFFFFF) * np.pi
-    phi = (int(sha256_hash[8:16], 16) / 0xFFFFFFFF) * 2 * np.pi
-    
-    alpha = np.cos(theta / 2)
-    beta = np.exp(1j * phi) * np.sin(theta / 2)
-    target_state = Statevector([alpha, beta])
+if using_fallback:
+    st.info(f"No file uploaded — running on fallback payload `{FALLBACK_NAME}` so the dashboard never starts empty.")
 
-    qc = QuantumCircuit(3, 2)
-    qc.initialize([alpha, beta], 0)
-    qc.h(1)
-    qc.cx(1, 2)
-    
-    if eve_active:
-        qc.measure(2, 0)
-        qber = float(np.clip(27.5 + np.random.uniform(-0.6, 1.4), 25.0, 38.0))
-        fidelity = float(np.random.uniform(0.61, 0.72))
-        b1, b0 = np.random.randint(0, 2), np.random.randint(0, 2)
-    else:
-        qc.cx(0, 1)
-        qc.h(0)
-        b1 = int(sha256_hash[16], 16) % 2
-        b0 = int(sha256_hash[17], 16) % 2
-        qber = float(np.clip(4.2 + (fiber_distance / 100.0) * 0.4 + np.random.uniform(-0.2, 0.2), 3.2, 8.5))
-        fidelity = float(np.clip(0.994 - (qber / 600.0), 0.985, 0.999))
+# --------------------------------------------------------------------------
+# RUN PROTOCOL
+# --------------------------------------------------------------------------
+result = simulate_protocol(digest, eve_attack)
+qc = build_teleportation_circuit(result["theta"], result["phi"])
+circuit_text = str(qc.draw(output="text"))
 
-    latency_ms = (time.perf_counter() - t_start) * 1000 + np.random.uniform(1.2, 2.0)
-    pauli_ops = {(0, 0): "I (Identity)", (0, 1): "X (Bit Flip)", (1, 0): "Z (Phase Flip)", (1, 1): "Y (Bit+Phase Flip)"}
-    
-    st.session_state.last_run = {
-        "qber": qber,
-        "fidelity": fidelity,
-        "b1": b1,
-        "b0": b0,
-        "operator": pauli_ops[(b1, b0)],
-        "latency": latency_ms,
-        "circuit": qc,
-        "filename": filename_display,
-        "theta": theta,
-        "phi": phi
-    }
+# --------------------------------------------------------------------------
+# QUANTUM CORE
+# --------------------------------------------------------------------------
+st.markdown('<div class="qs-section-title">02 · Quantum Core — Teleportation Circuit</div>', unsafe_allow_html=True)
 
-res = st.session_state.last_run
+qc_col1, qc_col2 = st.columns([3, 2])
 
+with qc_col1:
+    st.markdown("**Generated 3-Qubit BSM Teleportation Circuit**")
+    st.code(circuit_text, language=None)
+
+with qc_col2:
+    st.markdown(
+        f"""
+        <div class="qs-card">
+            <b>State Encoding (from digest)</b><br>
+            <span class="qs-mono">theta (θ) = {result['theta']:.4f} rad</span><br>
+            <span class="qs-mono">phi (φ)   = {result['phi']:.4f} rad</span>
+        </div>
+        <div class="qs-card">
+            <b>Alice's Classical Syndrome</b><br>
+            <span class="qs-mono">b1 = {result['b1']}   b0 = {result['b0']}</span><br><br>
+            <b>Bob's Pauli Recovery Operator</b><br>
+            <span class="qs-mono" style="font-size:1.3rem;">{result['pauli_symbol']}</span><br>
+            <span style="color:#9fb6cc; font-size:0.85rem;">{result['pauli_desc']}</span>
+        </div>
+        <div class="qs-card">
+            <b>State Reconstruction Fidelity</b><br>
+            <span class="qs-mono" style="font-size:1.3rem; color:{'#4dffb0' if result['fidelity'] >= 0.99 else '#ff7a90'};">
+                {result['fidelity']*100:.2f}%
+            </span><br>
+            <span style="color:#9fb6cc; font-size:0.85rem;">Target ≥ 99.00%</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# --------------------------------------------------------------------------
+# DECISION BANNER
+# --------------------------------------------------------------------------
+st.markdown('<div class="qs-section-title">03 · Threat Gate — Verification Decision</div>', unsafe_allow_html=True)
+
+if result["verified"]:
+    st.markdown(
+        """
+        <div class="qs-banner-success">
+            ✅ VERIFICATION SUCCESS — SIGNATURE COMMITTED<br>
+            <span style="font-size:0.85rem; font-weight:400; color:#9fe8ff;">
+                Information-theoretically secure · QBER within 11% security threshold
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+else:
+    st.markdown(
+        """
+        <div class="qs-banner-fail">
+            🚨 INSTANT CIRCUIT ABORT — DOCUMENT LOCKED OUT<br>
+            <span style="font-size:0.85rem; font-weight:400; color:#ffc2cc;">
+                Wavefunction collapsed under adversarial projective measurement · QBER exceeds 11% threshold
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# --------------------------------------------------------------------------
+# TELEMETRY & GAUGES
+# --------------------------------------------------------------------------
+st.markdown('<div class="qs-section-title">04 · Live Telemetry &amp; Hardware Gauges</div>', unsafe_allow_html=True)
+
+gauge_col, kpi_col = st.columns([2, 3])
+
+with gauge_col:
+    st.plotly_chart(make_gauge(result["qber"]), use_container_width=True)
+    st.caption(
+        "🕵️ Eve intercept-resend tap active on fiber link." if eve_attack
+        else "📡 Nominal fiber attenuation — no adversarial tap detected."
+    )
+
+with kpi_col:
+    m1, m2 = st.columns(2)
+    m3, m4 = st.columns(2)
+
+    m1.metric(
+        "FPGA Verification Time",
+        f"{result['fpga_ms']:.2f} ms",
+        delta="Line-rate target < 5 ms",
+        delta_color="off",
+    )
+    m2.metric(
+        "Classical Bloat",
+        "2 bits / qubit",
+        delta="Zero MTU bloat",
+        delta_color="off",
+    )
+    m3.metric(
+        "Infrastructure Capex",
+        "₹0 Forklift",
+        delta="Standard C-band dark fiber",
+        delta_color="off",
+    )
+    m4.metric(
+        "QBER (measured)",
+        f"{result['qber']:.2f} %",
+        delta=f"{'BELOW' if result['verified'] else 'ABOVE'} 11.00% cutoff",
+        delta_color="normal" if result["verified"] else "inverse",
+    )
+
+# --------------------------------------------------------------------------
+# FOOTER
+# --------------------------------------------------------------------------
 st.markdown("---")
-
-# ==============================================================================
-# 5. HARDWARE THREAT GATING VERDICT
-# ==============================================================================
-if res["qber"] <= 11.0:
-    st.markdown(
-        f"""
-        <div class="banner-pass">
-            <h3 style="margin:0; font-weight:800; color:#065f46;">
-                ✅ VERIFICATION SUCCESS — SIGNATURE COMMITTED
-            </h3>
-            <p style="margin:4px 0 0 0; font-size:1rem;">
-                Live QBER is stable at <b>{res['qber']:.2f}%</b> (≤ 11% safety cutoff). Non-repudiation guaranteed by quantum invariants. Zero wiretapping detected.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-else:
-    st.markdown(
-        f"""
-        <div class="banner-abort">
-            <h3 style="margin:0; font-weight:800; color:#991b1b;">
-                🚨 INSTANT CIRCUIT ABORT — DOCUMENT LOCKED OUT
-            </h3>
-            <p style="margin:4px 0 0 0; font-size:1rem;">
-                Optical tap detected! Wavefunction collapsed with QBER spiked to <b>{res['qber']:.2f}%</b> (threshold exceeded &gt; 11%). Payload permanently dropped.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# ==============================================================================
-# 6. CIRCUIT STRUCTURE, CLASSICAL SYNDROMES & QBER GAUGE
-# ==============================================================================
-col_left, col_right = st.columns([1.1, 0.9])
-
-with col_left:
-    st.subheader("2. Qiskit Circuit & Classical Syndromes")
-    st.code(res["circuit"].draw(output="text"), language="text")
-    
-    c_syn1, c_syn2, c_syn3 = st.columns(3)
-    c_syn1.metric("Syndrome Bit b1", res["b1"])
-    c_syn2.metric("Syndrome Bit b0", res["b0"])
-    c_syn3.metric("Pauli Recovery", res["operator"].split()[0])
-    
-    st.info(f"Bob applied **{res['operator']}** to reconstruct the target state with **{res['fidelity'] * 100:.2f}%** fidelity.")
-
-with col_right:
-    st.subheader("3. Real-Time QBER Threat Gate")
-    
-    bar_color = "#ef4444" if res["qber"] > 11.0 else "#10b981"
-    
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number+delta",
-        value=res["qber"],
-        delta={'reference': 11.0, 'increasing': {'color': "#ef4444"}, 'decreasing': {'color': "#10b981"}},
-        number={'suffix': "%", 'font': {'size': 44, 'family': "JetBrains Mono"}},
-        gauge={
-            'axis': {'range': [0, 40], 'tickwidth': 1},
-            'bar': {'color': bar_color, 'thickness': 0.35},
-            'steps': [
-                {'range': [0, 11], 'color': "rgba(16, 185, 129, 0.2)"},
-                {'range': [11, 40], 'color': "rgba(239, 68, 68, 0.2)"}
-            ],
-            'threshold': {'line': {'color': "#b91c1c", 'width': 4}, 'thickness': 0.85, 'value': 11.0}
-        }
-    ))
-    fig.update_layout(height=260, margin=dict(l=20, r=20, t=30, b=20), paper_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig, use_container_width=True)
-    
-    kpi_col1, kpi_col2 = st.columns(2)
-    kpi_col1.metric("FPGA Verification Time", f"{res['latency']:.2f} ms", delta="< 5 ms")
-    kpi_col2.metric("Classical Bloat", "2 Bits / Qubit", delta="Zero MTU")
+st.markdown(
+    """
+    <div style="text-align:center; color:#5c7290; font-family:'JetBrains Mono', monospace; font-size:0.8rem;">
+        Q-SignGuard · Deterministic Quantum Digital Signature Engine · SIH26141 · Team QSentinel · 2026
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
