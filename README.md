@@ -3,7 +3,7 @@
 **Deterministic Quantum Digital Signature (QDS) Engine**
 Smart India Hackathon 2026 · Problem ID **SIH26141** · Team **QSentinel**
 
-Live app: `https://q-signguard.streamlit.app/` *(replace with your final deployed URL if different)*
+Live app: `https://q-signguard.streamlit.app/` 
 
 ---
 
