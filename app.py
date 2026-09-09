@@ -40,9 +40,20 @@ st.markdown(
         font-family: 'Inter', sans-serif;
     }
 
+    * { box-sizing: border-box; }
+
     .stApp {
         background: radial-gradient(circle at 15% 10%, #0d1b2a 0%, #060a12 55%, #030509 100%);
         color: #e6f1ff;
+    }
+
+    /* Fluid content width: comfortable on judge laptops, full-bleed on phones */
+    .block-container {
+        max-width: 1180px;
+        padding-top: 1.6rem;
+        padding-left: clamp(0.8rem, 4vw, 3rem);
+        padding-right: clamp(0.8rem, 4vw, 3rem);
+        padding-bottom: 3rem;
     }
 
     section[data-testid="stSidebar"] {
@@ -57,7 +68,7 @@ st.markdown(
     }
 
     .qs-hero {
-        padding: 1.4rem 1.8rem;
+        padding: clamp(1.1rem, 3vw, 1.6rem) clamp(1.1rem, 4vw, 2rem);
         border-radius: 18px;
         background: linear-gradient(135deg, rgba(0,229,255,0.10), rgba(123,97,255,0.08));
         border: 1px solid rgba(0, 229, 255, 0.25);
@@ -65,26 +76,47 @@ st.markdown(
         margin-bottom: 1.2rem;
     }
 
+    .qs-hero h1 {
+        font-size: clamp(1.6rem, 4.2vw, 2.4rem);
+        background: linear-gradient(90deg, #ffffff 0%, #7be8ff 60%, #00e5ff 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.25;
+    }
+
+    .qs-hero p {
+        font-size: clamp(0.85rem, 1.6vw, 1.02rem);
+    }
+
     .qs-badge {
         display: inline-block;
         padding: 0.18rem 0.7rem;
-        margin-right: 0.4rem;
+        margin: 0 0.4rem 0.4rem 0;
         border-radius: 999px;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 600;
         background: rgba(0, 229, 255, 0.12);
         border: 1px solid rgba(0, 229, 255, 0.35);
         color: #7be8ff;
+        white-space: nowrap;
     }
 
     .qs-card {
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 16px;
-        padding: 1.1rem 1.3rem;
+        padding: clamp(0.9rem, 2vw, 1.1rem) clamp(1rem, 2.5vw, 1.3rem);
         margin-bottom: 1rem;
         backdrop-filter: blur(6px);
+        transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .qs-card:hover {
+        border-color: rgba(0, 229, 255, 0.35);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 229, 255, 0.08);
     }
 
     .qs-mono {
@@ -95,31 +127,33 @@ st.markdown(
     }
 
     .qs-banner-success {
-        padding: 1.1rem 1.4rem;
+        padding: clamp(0.9rem, 2.5vw, 1.1rem) clamp(1rem, 3vw, 1.4rem);
         border-radius: 14px;
         background: linear-gradient(135deg, rgba(0, 230, 118, 0.18), rgba(0, 230, 118, 0.06));
         border: 1.5px solid rgba(0, 230, 118, 0.65);
         box-shadow: 0 0 30px rgba(0, 230, 118, 0.20);
         font-family: 'JetBrains Mono', monospace;
-        font-size: 1.05rem;
+        font-size: clamp(0.88rem, 2.4vw, 1.05rem);
         font-weight: 700;
         color: #4dffb0;
         text-align: center;
         margin: 0.8rem 0 1.2rem 0;
+        line-height: 1.5;
     }
 
     .qs-banner-fail {
-        padding: 1.1rem 1.4rem;
+        padding: clamp(0.9rem, 2.5vw, 1.1rem) clamp(1rem, 3vw, 1.4rem);
         border-radius: 14px;
         background: linear-gradient(135deg, rgba(255, 45, 85, 0.22), rgba(255, 45, 85, 0.06));
         border: 1.5px solid rgba(255, 45, 85, 0.70);
         box-shadow: 0 0 30px rgba(255, 45, 85, 0.25);
         font-family: 'JetBrains Mono', monospace;
-        font-size: 1.05rem;
+        font-size: clamp(0.88rem, 2.4vw, 1.05rem);
         font-weight: 700;
         color: #ff7a90;
         text-align: center;
         margin: 0.8rem 0 1.2rem 0;
+        line-height: 1.5;
         animation: qs-pulse 1.4s ease-in-out infinite;
     }
 
@@ -145,11 +179,22 @@ st.markdown(
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 14px;
         padding: 0.8rem 1rem;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    div[data-testid="stMetric"]:hover {
+        border-color: rgba(0, 229, 255, 0.3);
+        transform: translateY(-2px);
     }
 
     div[data-testid="stMetricValue"] {
         font-family: 'JetBrains Mono', monospace;
         color: #7be8ff;
+        font-size: clamp(1.1rem, 3vw, 1.5rem);
+    }
+
+    div[data-testid="stMetricLabel"] {
+        font-size: clamp(0.78rem, 1.8vw, 0.9rem);
     }
 
     pre, code {
@@ -160,7 +205,26 @@ st.markdown(
         border: 1px solid rgba(0, 229, 255, 0.15) !important;
     }
 
+    /* Circuit ASCII art scrolls horizontally instead of breaking layout on phones */
+    div[data-testid="stCodeBlock"] pre {
+        overflow-x: auto !important;
+        font-size: clamp(0.68rem, 1.6vw, 0.85rem) !important;
+    }
+
+    /* Plotly gauge / chart containers shrink cleanly */
+    div[data-testid="stPlotlyChart"] {
+        width: 100% !important;
+    }
+
     footer, #MainMenu { visibility: hidden; }
+
+    /* ---- Small-screen tuning (phones, QR-code scans) ---- */
+    @media (max-width: 640px) {
+        .qs-hero { text-align: left; }
+        .qs-badge { font-size: 0.65rem; padding: 0.15rem 0.55rem; }
+        .qs-section-title { font-size: 0.82rem; letter-spacing: 1px; }
+        .qs-card, .qs-banner-success, .qs-banner-fail { border-radius: 12px; }
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -276,8 +340,12 @@ def build_teleportation_circuit(theta: float, phi: float) -> QuantumCircuit:
     qc.measure(1, 1)
 
     # --- Classically-controlled Pauli recovery on Bob's qubit q2 ---
-    qc.x(2).c_if(cr[1], 1)
-    qc.z(2).c_if(cr[0], 1)
+    # NOTE: QuantumCircuit.c_if() was removed in qiskit 2.x. The supported
+    # replacement is the if_test() control-flow context manager.
+    with qc.if_test((cr[1], 1)):
+        qc.x(2)
+    with qc.if_test((cr[0], 1)):
+        qc.z(2)
     qc.barrier(label="PAULI RECOVERY")
     qc.measure(2, 2)
 
