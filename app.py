@@ -43,13 +43,6 @@ st.markdown(
         border-radius: 6px;
         margin-right: 8px;
     }
-    .metric-box {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 14px 18px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-    }
     .banner-pass {
         background: #ecfdf5;
         border: 2px solid #10b981;
@@ -111,17 +104,16 @@ st.markdown("### **1. Real Contract / Document Ingestion**")
 uploaded_file = st.file_uploader(
     "Upload real contract (PDF) or financial wire payload", 
     type=["pdf", "txt", "docx"],
-    help="Upload any sample contract PDF to hash and lock with deterministic quantum digital signatures[cite: 3]."
+    help="Upload any sample contract PDF to hash and lock with deterministic quantum digital signatures."
 )
 
 if uploaded_file is not None:
     payload_bytes = uploaded_file.read()
     filename_display = uploaded_file.name
 else:
-    # Default contract payload if no file uploaded
     payload_bytes = b"STANDARD ARMED FORCES PROCUREMENT & CONTRACT DISPATCH - REF C4ISR-2026"
     filename_display = "default_tactical_dispatch.pdf"
-    st.caption("ℹ️ *No file uploaded yet. Running on built-in default tactical contract. Upload a PDF above anytime[cite: 3].*")
+    st.caption("ℹ️ *Running on default tactical payload. Upload any document above to sign a live file.*")
 
 col_sign, col_meta = st.columns([1, 2])
 with col_sign:
@@ -138,7 +130,6 @@ with col_meta:
 if sign_clicked or "last_run" not in st.session_state:
     t_start = time.perf_counter()
     
-    # State parameterization from digest
     theta = (int(sha256_hash[0:8], 16) / 0xFFFFFFFF) * np.pi
     phi = (int(sha256_hash[8:16], 16) / 0xFFFFFFFF) * 2 * np.pi
     
@@ -146,30 +137,25 @@ if sign_clicked or "last_run" not in st.session_state:
     beta = np.exp(1j * phi) * np.sin(theta / 2)
     target_state = Statevector([alpha, beta])
 
-    # Qiskit 3-qubit Teleportation Circuit Setup
     qc = QuantumCircuit(3, 2)
-    qc.initialize([alpha, beta], 0)  # Payload qubit q0[cite: 3]
-    qc.h(1)                          # Entangled Bell Pair Source[cite: 3]
-    qc.cx(1, 2)                      # Alice-Bob Bell Bus (q1, q2)[cite: 3]
+    qc.initialize([alpha, beta], 0)
+    qc.h(1)
+    qc.cx(1, 2)
     
     if eve_active:
-        # Eve measures transit qubit in unknown basis (Wavefunction collapse)[cite: 3]
         qc.measure(2, 0)
-        qber = float(np.clip(27.5 + np.random.uniform(-0.6, 1.4), 25.0, 38.0)) # Deterministic >= 25% spike[cite: 3]
+        qber = float(np.clip(27.5 + np.random.uniform(-0.6, 1.4), 25.0, 38.0))
         fidelity = float(np.random.uniform(0.61, 0.72))
         b1, b0 = np.random.randint(0, 2), np.random.randint(0, 2)
     else:
-        # Clean Bell State Measurement (BSM)[cite: 3]
         qc.cx(0, 1)
         qc.h(0)
         b1 = int(sha256_hash[16], 16) % 2
         b0 = int(sha256_hash[17], 16) % 2
-        # Controlled fiber loss around safe 4.2% baseline[cite: 3]
         qber = float(np.clip(4.2 + (fiber_distance / 100.0) * 0.4 + np.random.uniform(-0.2, 0.2), 3.2, 8.5))
         fidelity = float(np.clip(0.994 - (qber / 600.0), 0.985, 0.999))
 
     latency_ms = (time.perf_counter() - t_start) * 1000 + np.random.uniform(1.2, 2.0)
-    
     pauli_ops = {(0, 0): "I (Identity)", (0, 1): "X (Bit Flip)", (1, 0): "Z (Phase Flip)", (1, 1): "Y (Bit+Phase Flip)"}
     
     st.session_state.last_run = {
@@ -200,7 +186,7 @@ if res["qber"] <= 11.0:
                 ✅ VERIFICATION SUCCESS — SIGNATURE COMMITTED
             </h3>
             <p style="margin:4px 0 0 0; font-size:1rem;">
-                Live QBER is stable at <b>{res['qber']:.2f}%</b> (≤ 11% safety cutoff). Non-repudiation guaranteed by quantum invariants. Zero wiretapping detected[cite: 3].
+                Live QBER is stable at <b>{res['qber']:.2f}%</b> (≤ 11% safety cutoff). Non-repudiation guaranteed by quantum invariants. Zero wiretapping detected.
             </p>
         </div>
         """,
@@ -214,7 +200,7 @@ else:
                 🚨 INSTANT CIRCUIT ABORT — DOCUMENT LOCKED OUT
             </h3>
             <p style="margin:4px 0 0 0; font-size:1rem;">
-                Optical tap detected! Wavefunction collapsed with QBER spiked to <b>{res['qber']:.2f}%</b> (threshold exceeded &gt; 11%). Payload permanently dropped[cite: 3].
+                Optical tap detected! Wavefunction collapsed with QBER spiked to <b>{res['qber']:.2f}%</b> (threshold exceeded &gt; 11%). Payload permanently dropped.
             </p>
         </div>
         """,
@@ -229,9 +215,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 col_left, col_right = st.columns([1.1, 0.9])
 
 with col_left:
-    st.subheader("2. Qiskit Circuit & Classical Syndromes[cite: 3]")
-    
-    # Real-time Qiskit ASCII render[cite: 3]
+    st.subheader("2. Qiskit Circuit & Classical Syndromes")
     st.code(res["circuit"].draw(output="text"), language="text")
     
     c_syn1, c_syn2, c_syn3 = st.columns(3)
@@ -239,10 +223,10 @@ with col_left:
     c_syn2.metric("Syndrome Bit b0", res["b0"])
     c_syn3.metric("Pauli Recovery", res["operator"].split()[0])
     
-    st.info(f"Bob applied **{res['operator']}** to reconstruct $|\\psi\\rangle$ with **{res['fidelity'] * 100:.2f}%** fidelity[cite: 3].")
+    st.info(f"Bob applied **{res['operator']}** to reconstruct the target state with **{res['fidelity'] * 100:.2f}%** fidelity.")
 
 with col_right:
-    st.subheader("3. Real-Time QBER Threat Gate[cite: 3]")
+    st.subheader("3. Real-Time QBER Threat Gate")
     
     bar_color = "#ef4444" if res["qber"] > 11.0 else "#10b981"
     
@@ -265,5 +249,5 @@ with col_right:
     st.plotly_chart(fig, use_container_width=True)
     
     kpi_col1, kpi_col2 = st.columns(2)
-    kpi_col1.metric("FPGA Verification Time", f"{res['latency']:.2f} ms", delta="< 5 ms[cite: 3]")
-    kpi_col2.metric("Classical Bloat", "2 Bits / Qubit", delta="Zero MTU[cite: 3]")
+    kpi_col1.metric("FPGA Verification Time", f"{res['latency']:.2f} ms", delta="< 5 ms")
+    kpi_col2.metric("Classical Bloat", "2 Bits / Qubit", delta="Zero MTU")
