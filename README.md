@@ -3,7 +3,7 @@
 **Deterministic Quantum Digital Signature (QDS) Engine**
 Smart India Hackathon 2026 · Problem ID **SIH26141** · Team **QSentinel**
 
-Live app: `https://q-signguard.streamlit.app/` 
+Live app: `https://q-signguard.streamlit.app/` *(replace with your final deployed URL if different)*
 
 ---
 
@@ -24,7 +24,7 @@ quantum measurement, not on math being hard to invert.
 |---|---|
 | **Document ingestion** | User uploads a PDF/TXT/DOCX contract. A live SHA-256 digest is computed over the raw bytes. |
 | **State encoding** | The digest deterministically sets encoding angles (θ, φ) for a payload qubit — i.e. the document's fingerprint is embedded into a quantum state. |
-| **Quantum teleportation circuit** | A real 3-qubit circuit is built with Qiskit: payload qubit + a shared Bell pair (⟩Φ+⟩), Bell State Measurement (BSM), and Pauli recovery structure — rendered live as ASCII circuit art. |
+| **Quantum teleportation circuit** | A real 3-qubit circuit is built with Qiskit: payload qubit + a shared Bell pair (\|Φ+⟩), Bell State Measurement (BSM), and Pauli recovery structure — rendered live as ASCII circuit art. |
 | **Syndrome & recovery** | Classical syndrome bits (b1, b0) and the resulting Bob-side Pauli correction (I / X / Y / Z) are shown, along with reconstruction fidelity (target ≥ 99%). |
 | **Threat gate (Eve)** | A sidebar toggle simulates an intercept-resend optical-tap attack. Clean-channel QBER sits ~3.5–4.5%; an active tap forces QBER ≥ 27.5%. |
 | **Decision** | If QBER ≤ 11% (the standard QKD security threshold), the signature is committed (green banner). Above that, the circuit aborts instantly and the document is locked out (red banner) — this is the wavefunction-collapse-based tamper detection. |
@@ -44,8 +44,8 @@ are required — the app is self-contained and runs anywhere Python does.
 ## 4. Running Locally
 
 ```bash
-git clone <your-repo-url>
-cd q-signguard
+git clone https://github.com/leisha0907/Q-SignGuard.git
+cd Q-SignGuard
 pip install -r requirements.txt
 streamlit run app.py
 ```
