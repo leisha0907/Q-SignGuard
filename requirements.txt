@@ -1,3 +1,16 @@
+# Q-SignGuard — locked dependency set (SIH26141 / Team QSentinel)
+#
+# Target runtime: Python 3.11 (confirmed via Streamlit Cloud deploy logs
+# showing "Using Python 3.11.16 environment"). All versions below install
+# from prebuilt wheels on 3.11 — including qiskit's `symengine` dependency,
+# which has NO Python 3.14 wheel and fails to build there (missing cmake).
+#
+# IMPORTANT: these pins are only valid while the deploy is on Python 3.11.
+# If Streamlit Cloud's Python version selector reverts to 3.14 again
+# (check the deploy log's "Using Python X.Y.Z environment" line), switch
+# back to qiskit==2.5.2 / numpy==2.5.3 instead — those are the versions
+# confirmed to have Python 3.14 wheels. Do not mix: qiskit==1.3.1 on
+# Python 3.14 will fail to build symengine from source.
 streamlit==1.63.0
 qiskit==1.3.1
 numpy==1.26.4
