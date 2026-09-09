@@ -339,13 +339,18 @@ def build_teleportation_circuit(theta: float, phi: float) -> QuantumCircuit:
     qc.measure(0, 0)
     qc.measure(1, 1)
 
-    # --- Classically-controlled Pauli recovery on Bob's qubit q2 ---
-    # NOTE: QuantumCircuit.c_if() was removed in qiskit 2.x. The supported
-    # replacement is the if_test() control-flow context manager.
-    with qc.if_test((cr[1], 1)):
-        qc.x(2)
-    with qc.if_test((cr[0], 1)):
-        qc.z(2)
+    # --- Pauli recovery structure on Bob's qubit q2 ---
+    # NOTE: we deliberately do NOT use classically-controlled gates here
+    # (neither the removed .c_if() nor the if_test() control-flow builder).
+    # This circuit is built purely for ASCII visualization of the protocol
+    # structure; the actual b1/b0 -> Pauli mapping used by the app is
+    # computed directly from the document digest (see derive_quantum_params)
+    # and displayed separately in the "Pauli Recovery Operator" panel.
+    # Drawing IfElseOp control-flow blocks via the text drawer depends on
+    # rustworkx's native layout engine, which has shown ABI-related native
+    # crashes on newer Python builds — plain gates avoid that risk entirely.
+    qc.x(2)  # Pauli-X correction, physically applied iff b1 = 1
+    qc.z(2)  # Pauli-Z correction, physically applied iff b0 = 1
     qc.barrier(label="PAULI RECOVERY")
     qc.measure(2, 2)
 
@@ -550,7 +555,7 @@ st.markdown('<div class="qs-section-title">04 · Live Telemetry &amp; Hardware G
 gauge_col, kpi_col = st.columns([2, 3])
 
 with gauge_col:
-    st.plotly_chart(make_gauge(result["qber"]), use_container_width=True)
+    st.plotly_chart(make_gauge(result["qber"]), width="stretch")
     st.caption(
         "🕵️ Eve intercept-resend tap active on fiber link." if eve_attack
         else "📡 Nominal fiber attenuation — no adversarial tap detected."
